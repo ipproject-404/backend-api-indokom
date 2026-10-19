@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Presensi;
+use App\Models\Presensi; 
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -13,26 +13,26 @@ class DashboardController extends Controller
     public function index()
     {
         $today = Carbon::today();
+        
+        $batasJamMasuk = '08:00:00';
 
-        // 1. Hitung Total Karyawan (menggunakan tabel users)
+        // 1. Hitung Total Karyawan
         $totalKaryawan = User::count();
 
-        // 2. Hitung Hadir Hari Ini (Asumsi kolom status = 'hadir')
-        $hadir = Presensi::whereDate('created_at', $today)
-                         ->where('status_kehadiran', 'hadir') 
-                         ->count();
+        // 2. Hitung Hadir (Total baris absensi hari ini)
+        $hadir = Presensi::whereDate('created_at', $today)->count();
 
-        // 3. Hitung Terlambat Hari Ini (Asumsi kolom status = 'terlambat')
-        $terlambat = Presensi::whereDate('created_at', $today)
-                             ->where('status_kehadiran', 'terlambat')
+        // 3. Hitung Terlambat (LOGIKA BARU)
+        // Menghitung absensi hari ini yang jam-nya LEBIH BESAR dari batasJamMasuk
+        $terlambat = Presensi::whereDate('jam_masuk', $today)
+                             ->whereTime('jam_masuk', '>', $batasJamMasuk)
                              ->count();
 
         // 4. Hitung Belum Absen
-        $belumAbsen = $totalKaryawan - ($hadir + $terlambat);
-        if ($belumAbsen < 0) $belumAbsen = 0; // Jaga-jaga jika data aneh
+        $belumAbsen = $totalKaryawan - $hadir;
+        if ($belumAbsen < 0) $belumAbsen = 0;
 
-        // 5. (Opsional) Data dummy untuk grafik mingguan agar tidak error di frontend
-        // Nanti bisa diganti dengan query Group By tanggal
+        // 5. Data Grafik Mingguan
         $grafikMingguan = [
             ['name' => 'Sen', 'tepat' => $hadir, 'telat' => $terlambat],
             ['name' => 'Sel', 'tepat' => 300, 'telat' => 13],
