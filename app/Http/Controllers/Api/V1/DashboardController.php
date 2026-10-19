@@ -19,12 +19,12 @@ class DashboardController extends Controller
 
         // 2. Hitung Hadir Hari Ini (Asumsi kolom status = 'hadir')
         $hadir = Presensi::whereDate('created_at', $today)
-                         ->where('status', 'hadir') 
+                         ->where('status_kehadiran', 'hadir') 
                          ->count();
 
         // 3. Hitung Terlambat Hari Ini (Asumsi kolom status = 'terlambat')
         $terlambat = Presensi::whereDate('created_at', $today)
-                             ->where('status', 'terlambat')
+                             ->where('status_kehadiran', 'terlambat')
                              ->count();
 
         // 4. Hitung Belum Absen
