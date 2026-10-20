@@ -9,26 +9,47 @@ use Illuminate\Support\Facades\DB;
 
 class AbsensiApmController extends Controller
 {
-        public function metrics()
+    public function metrics()
     {
         $today = Carbon::today();
 
-        // 1. Traffic Data (Kode lama biarkan)
+        // 1. Hitung Traffic Peak (RPS per jam hari ini)
+        // Kita ambil log yang endpoint-nya berhubungan dengan absensi
         $trafficData = ApiLog::select(
-            DB::raw("DATE_FORMAT(created_at, '%H:%i') as time"),
-            DB::raw('COUNT(*) as requests')
+            DB::raw("DATE_FORMAT(created_at, '%H:%i') as time"), // Format Jam:Menit
+            DB::raw('COUNT(*) as requests') // Ambil total request mentahnya
         )
         ->whereDate('created_at', $today)
-        ->where('endpoint', 'LIKE', '%absensi%') 
+        ->where('endpoint', 'LIKE', '%absensi%') // Filter hanya endpoint absensi
         ->groupBy('time')
         ->orderBy('time')
         ->get();
+        // ->map(function ($item) {
+        //     return [
+        //         'time' => str_pad($item->hour, 2, '0', STR_PAD_LEFT) . ':00',
+        //         'rps' => round($item->total_requests / 3600, 2) // Rata-rata per detik di jam tersebut
+        //     ];
+        // });
 
-        // 2. HTTP Status (Kode lama biarkan)
-        // ... (biarkan query statusCodes yang lama) ...
+        // 2. HTTP Status Breakdown
+        $statusCodes = ApiLog::select('status_code', DB::raw('COUNT(*) as count'))
+            ->whereDate('created_at', $today)
+            ->groupBy('status_code')
+            ->get();
+            
+        $success = $statusCodes->where('status_code', 200)->sum('count');
+        $clientError = $statusCodes->whereBetween('status_code', [400, 499])->sum('count');
+        $serverError = $statusCodes->whereBetween('status_code', [500, 599])->sum('count');
+        
+        $totalRequests = $success + $clientError + $serverError;
+        
+        $httpStatusData = [
+            ['name' => '2xx OK', 'value' => $totalRequests > 0 ? round(($success / $totalRequests) * 100) : 0, 'fill' => '#10b981'],
+            ['name' => '4xx Client', 'value' => $totalRequests > 0 ? round(($clientError / $totalRequests) * 100) : 0, 'fill' => '#f59e0b'],
+            ['name' => '5xx Server', 'value' => $totalRequests > 0 ? round(($serverError / $totalRequests) * 100) : 0, 'fill' => '#ef4444'],
+        ];
 
-        // 3. API Response Time (BARU)
-        $apiResponseTimes = ApiLog::select(
+     $apiResponseTimes = ApiLog::select(
             DB::raw("DATE_FORMAT(created_at, '%H:%i') as time"),
             DB::raw('AVG(response_time) as ms')
         )
