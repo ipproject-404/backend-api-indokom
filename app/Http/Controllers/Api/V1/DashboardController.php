@@ -62,10 +62,14 @@ class DashboardController extends Controller
 
         $cpuName = 'Unknown';
         $osName = 'Unknown';
+        $netRx = 0; 
+        $netTx = 0; 
 
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $cpuName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_Processor).Name"'));
             $osName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"'));
+            $netRx = (float) trim(shell_exec('powershell -Command "(Get-NetAdapterStatistics | Measure-Object -Property ReceivedBytes -Sum).Sum"'));
+            $netTx = (float) trim(shell_exec('powershell -Command "(Get-NetAdapterStatistics | Measure-Object -Property SentBytes -Sum).Sum"'));
             if (!$cpuName) $cpuName = 'Windows Processor';
             if (!$osName) $osName = 'Windows OS';
         }
@@ -116,6 +120,8 @@ class DashboardController extends Controller
                 'disk_used' => round($snapshot->diskUsed / 1024 / 1024 / 1024, 2),
                 'disk_total' => round($snapshot->diskTotal / 1024 / 1024 / 1024, 2),
                 'disk_percent' => round(($snapshot->diskUsed / $snapshot->diskTotal) * 100, 2),
+                'net_rx_bytes' => $netRx, // <-- Tambahan
+                'net_tx_bytes' => $netTx, // <-- Tambahan
                 'uptime' => $uptimeString, // <-- Format baru
                 'local_ip' => $localIp,    // <-- Data baru
                 'public_ip' => $publicIp,  // <-- Data baru
@@ -126,5 +132,5 @@ class DashboardController extends Controller
             ]
         ], 200);
     }
-    
+
 }
