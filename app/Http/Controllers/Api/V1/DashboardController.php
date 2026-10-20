@@ -56,47 +56,75 @@ class DashboardController extends Controller
         ], 200);
     }
 
-    public function serverStats()
-{
-    // 1. Mengambil metrik server (CPU, RAM, Disk, Uptime)
-    $snapshot = app(ServerMetrics::class)->read();
+       public function serverStats()
+    {
+        $snapshot = app(ServerMetrics::class)->read();
 
-    $cpuName = 'Unknown';
-    $osName = 'Unknown';
+        $cpuName = 'Unknown';
+        $osName = 'Unknown';
 
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            // Menjalankan perintah PowerShell dari PHP
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $cpuName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_Processor).Name"'));
             $osName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"'));
-            
-            // Jika kosong (karena shell_exec diblokir), beri fallback
             if (!$cpuName) $cpuName = 'Windows Processor';
             if (!$osName) $osName = 'Windows OS';
         }
 
-    // 2. Mengukur waktu respon API (Latency)
-    $start = microtime(true);
-    DB::connection()->getPdo(); // Cek koneksi database
-    $latency = round((microtime(true) - $start) * 1000); // dalam milidetik (ms)
+        // ==========================================
+        // 1. FORMAT UPTIME (Hari, Jam, Menit, Detik)
+        // ==========================================
+        $uptimeSeconds = $snapshot->uptime;
+        $days = floor($uptimeSeconds / 86400);
+        $hours = floor(($uptimeSeconds % 86400) / 3600);
+        $minutes = floor(($uptimeSeconds % 3600) / 60);
+        $seconds = $uptimeSeconds % 60;
+        
+        $uptimeString = "";
+        if ($days > 0) $uptimeString .= "{$days} Hari, ";
+        if ($hours > 0) $uptimeString .= "{$hours} Jam, ";
+        $uptimeString .= "{$minutes} Menit, {$seconds} Detik";
+        if ($days == 0 && $hours == 0 && $minutes == 0) $uptimeString = "{$seconds} Detik";
 
-    return response()->json([
-        'status' => 'success',
-        'data' => [
-            'cpu' => round($snapshot->cpu, 2),
-            'cpu_cores' => $snapshot->cores,
-            'cpu_name' => $cpuName, // <-- Tambahan baru
-            'os_name' => $osName, 
-            'ram_used' => round($snapshot->memoryUsed / 1024 / 1024 / 1024, 2), // GB
-            'ram_total' => round($snapshot->memoryTotal / 1024 / 1024 / 1024, 2), // GB
-            'ram_percent' => round(($snapshot->memoryUsed / $snapshot->memoryTotal) * 100, 2),
-            'disk_used' => round($snapshot->diskUsed / 1024 / 1024 / 1024, 2), // GB
-            'disk_total' => round($snapshot->diskTotal / 1024 / 1024 / 1024, 2), // GB
-            'disk_percent' => round(($snapshot->diskUsed / $snapshot->diskTotal) * 100, 2),
-            'uptime' => floor($snapshot->uptime / 3600) . ' jam',
-            'db_status' => 'Connected',
-            'api_latency_ms' => $latency,
-            'server_time' => Carbon::now()->format('Y-m-d H:i:s'),
-        ]
-    ], 200);
-}
+        // ==========================================
+        // 2. INFO JARINGAN (IP Lokal, IP Publik, Status)
+        // ==========================================
+        $localIp = gethostbyname(gethostname()); // Mendapatkan IP Lokal
+        
+        // Mendapatkan IP Publik (dibatasi 2 detik agar tidak lemot jika internet mati)
+        $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+        $publicIp = @file_get_contents('https://api.ipify.org', false, $ctx);
+        if (!$publicIp) $publicIp = 'Offline';
+
+        // Cek koneksi ke Google DNS (8.8.8.8)
+        $isOnline = @fsockopen("8.8.8.8", 53, $errno, $errstr, 1) ? 'Online' : 'Offline';
+
+        // 3. Mengukur Latency API
+        $start = microtime(true);
+        DB::connection()->getPdo(); 
+        $latency = round((microtime(true) - $start) * 1000); 
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'cpu' => round($snapshot->cpu, 2),
+                'cpu_cores' => $snapshot->cores,
+                'cpu_name' => $cpuName,
+                'os_name' => $osName,
+                'ram_used' => round($snapshot->memoryUsed / 1024 / 1024 / 1024, 2),
+                'ram_total' => round($snapshot->memoryTotal / 1024 / 1024 / 1024, 2),
+                'ram_percent' => round(($snapshot->memoryUsed / $snapshot->memoryTotal) * 100, 2),
+                'disk_used' => round($snapshot->diskUsed / 1024 / 1024 / 1024, 2),
+                'disk_total' => round($snapshot->diskTotal / 1024 / 1024 / 1024, 2),
+                'disk_percent' => round(($snapshot->diskUsed / $snapshot->diskTotal) * 100, 2),
+                'uptime' => $uptimeString, // <-- Format baru
+                'local_ip' => $localIp,    // <-- Data baru
+                'public_ip' => $publicIp,  // <-- Data baru
+                'net_status' => $isOnline, // <-- Data baru
+                'db_status' => 'Connected',
+                'api_latency_ms' => $latency,
+                'server_time' => Carbon::now()->format('Y-m-d H:i:s'),
+            ]
+        ], 200);
+    }
+    
 }
