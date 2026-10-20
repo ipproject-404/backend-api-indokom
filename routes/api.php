@@ -25,6 +25,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/dashboard/stats', [DashboardController::class, 'index']);
             Route::get('/dashboard/server', [DashboardController::class, 'serverStats']);
             Route::get('/analytics/online', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'onlineVisitors']);
+            Route::get('/absensi/apm', [\App\Http\Controllers\Api\V1\AbsensiApmController::class, 'metrics']);
         });
     });
     
