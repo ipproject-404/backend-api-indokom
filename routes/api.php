@@ -17,6 +17,7 @@ Route::prefix('v1')->group(function () {
      Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/absensi', [AbsensiController::class, 'index']);
-        Route::get('/dashboard/stats', [DashboardController::class, 'index']); 
+        Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+        Route::get('/dashboard/server', [DashboardController::class, 'serverStats']); 
     });
 });
