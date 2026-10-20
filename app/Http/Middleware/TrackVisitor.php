@@ -35,6 +35,15 @@ class TrackVisitor
             ]);
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // Catat Log API (untuk APM)
+        \App\Models\ApiLog::create([
+            'endpoint' => $request->path(),
+            'status_code' => $response->getStatusCode(),
+            'hashed_ip' => $hashedId
+        ]);
+
+        return $response;
     }
 }
