@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\Presensi; 
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use KarimTao\ServerStatus\ServerMetrics;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -53,4 +55,33 @@ class DashboardController extends Controller
             ]
         ], 200);
     }
+
+    public function serverStats()
+{
+    // 1. Mengambil metrik server (CPU, RAM, Disk, Uptime)
+    $snapshot = app(ServerMetrics::class)->read();
+
+    // 2. Mengukur waktu respon API (Latency)
+    $start = microtime(true);
+    DB::connection()->getPdo(); // Cek koneksi database
+    $latency = round((microtime(true) - $start) * 1000); // dalam milidetik (ms)
+
+    return response()->json([
+        'status' => 'success',
+        'data' => [
+            'cpu' => round($snapshot->cpu, 2),
+            'cpu_cores' => $snapshot->cores,
+            'ram_used' => round($snapshot->memoryUsed / 1024 / 1024 / 1024, 2), // GB
+            'ram_total' => round($snapshot->memoryTotal / 1024 / 1024 / 1024, 2), // GB
+            'ram_percent' => round(($snapshot->memoryUsed / $snapshot->memoryTotal) * 100, 2),
+            'disk_used' => round($snapshot->diskUsed / 1024 / 1024 / 1024, 2), // GB
+            'disk_total' => round($snapshot->diskTotal / 1024 / 1024 / 1024, 2), // GB
+            'disk_percent' => round(($snapshot->diskUsed / $snapshot->diskTotal) * 100, 2),
+            'uptime' => floor($snapshot->uptime / 3600) . ' jam',
+            'db_status' => 'Connected',
+            'api_latency_ms' => $latency,
+            'server_time' => Carbon::now()->format('Y-m-d H:i:s'),
+        ]
+    ], 200);
+}
 }
