@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/users', [UserController::class, 'index']);
             Route::get('/dashboard/stats', [DashboardController::class, 'index']);
             Route::get('/dashboard/server', [DashboardController::class, 'serverStats']);
+            Route::get('/analytics/online', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'onlineVisitors']);
         });
     });
     
