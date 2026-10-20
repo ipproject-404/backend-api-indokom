@@ -58,8 +58,6 @@ class DashboardController extends Controller
 
     public function serverStats()
 {
-    sleep(2); // Menunda 1 detik (Warning)
-// sleep(2); // Ubah jadi 2 untuk mengetes zona Bahaya (Merah)
     // 1. Mengambil metrik server (CPU, RAM, Disk, Uptime)
     $snapshot = app(ServerMetrics::class)->read();
 
@@ -76,10 +74,9 @@ class DashboardController extends Controller
             if (!$osName) $osName = 'Windows OS';
         }
 
-        DB::select('SELECT SLEEP(2)'); // Memaksa database "tidur" selama 2 detik
-
     // 2. Mengukur waktu respon API (Latency)
     $start = microtime(true);
+    sleep(2); 
     DB::connection()->getPdo(); // Cek koneksi database
     $latency = round((microtime(true) - $start) * 1000); // dalam milidetik (ms)
 
