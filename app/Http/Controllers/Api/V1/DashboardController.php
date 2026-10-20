@@ -61,6 +61,19 @@ class DashboardController extends Controller
     // 1. Mengambil metrik server (CPU, RAM, Disk, Uptime)
     $snapshot = app(ServerMetrics::class)->read();
 
+    $cpuName = 'Unknown';
+    $osName = 'Unknown';
+
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Menjalankan perintah PowerShell dari PHP
+            $cpuName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_Processor).Name"'));
+            $osName = trim(shell_exec('powershell -Command "(Get-CimInstance Win32_OperatingSystem).Caption"'));
+            
+            // Jika kosong (karena shell_exec diblokir), beri fallback
+            if (!$cpuName) $cpuName = 'Windows Processor';
+            if (!$osName) $osName = 'Windows OS';
+        }
+
     // 2. Mengukur waktu respon API (Latency)
     $start = microtime(true);
     DB::connection()->getPdo(); // Cek koneksi database
@@ -71,6 +84,8 @@ class DashboardController extends Controller
         'data' => [
             'cpu' => round($snapshot->cpu, 2),
             'cpu_cores' => $snapshot->cores,
+            'cpu_name' => $cpuName, // <-- Tambahan baru
+            'os_name' => $osName, 
             'ram_used' => round($snapshot->memoryUsed / 1024 / 1024 / 1024, 2), // GB
             'ram_total' => round($snapshot->memoryTotal / 1024 / 1024 / 1024, 2), // GB
             'ram_percent' => round(($snapshot->memoryUsed / $snapshot->memoryTotal) * 100, 2),
