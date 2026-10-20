@@ -58,6 +58,8 @@ class DashboardController extends Controller
 
     public function serverStats()
 {
+    sleep(1); // Menunda 1 detik (Warning)
+// sleep(2); // Ubah jadi 2 untuk mengetes zona Bahaya (Merah)
     // 1. Mengambil metrik server (CPU, RAM, Disk, Uptime)
     $snapshot = app(ServerMetrics::class)->read();
 
