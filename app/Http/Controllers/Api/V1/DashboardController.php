@@ -76,7 +76,7 @@ class DashboardController extends Controller
 
     // 2. Mengukur waktu respon API (Latency)
     $start = microtime(true);
-    sleep(2); 
+    sleep(1); 
     DB::connection()->getPdo(); // Cek koneksi database
     $latency = round((microtime(true) - $start) * 1000); // dalam milidetik (ms)
 
