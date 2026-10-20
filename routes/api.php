@@ -19,5 +19,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/absensi', [AbsensiController::class, 'index']);
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
         Route::get('/dashboard/server', [DashboardController::class, 'serverStats']); 
+
+         Route::middleware('admin')->group(function () {
+            Route::get('/users', [UserController::class, 'index']);
+            Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+            Route::get('/dashboard/server', [DashboardController::class, 'serverStats']);
+        });
     });
+    
 });
