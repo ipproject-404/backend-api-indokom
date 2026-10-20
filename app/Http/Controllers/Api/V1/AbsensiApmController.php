@@ -16,20 +16,20 @@ class AbsensiApmController extends Controller
         // 1. Hitung Traffic Peak (RPS per jam hari ini)
         // Kita ambil log yang endpoint-nya berhubungan dengan absensi
         $trafficData = ApiLog::select(
-            DB::raw('HOUR(created_at) as hour'),
-            DB::raw('COUNT(*) as total_requests')
+            DB::raw("DATE_FORMAT(created_at, '%H:%i') as time"), // Format Jam:Menit
+            DB::raw('COUNT(*) as requests') // Ambil total request mentahnya
         )
         ->whereDate('created_at', $today)
         ->where('endpoint', 'LIKE', '%absensi%') // Filter hanya endpoint absensi
-        ->groupBy('hour')
-        ->orderBy('hour')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'time' => str_pad($item->hour, 2, '0', STR_PAD_LEFT) . ':00',
-                'rps' => round($item->total_requests / 3600, 2) // Rata-rata per detik di jam tersebut
-            ];
-        });
+        ->groupBy('time')
+        ->orderBy('time')
+        ->get();
+        // ->map(function ($item) {
+        //     return [
+        //         'time' => str_pad($item->hour, 2, '0', STR_PAD_LEFT) . ':00',
+        //         'rps' => round($item->total_requests / 3600, 2) // Rata-rata per detik di jam tersebut
+        //     ];
+        // });
 
         // 2. HTTP Status Breakdown
         $statusCodes = ApiLog::select('status_code', DB::raw('COUNT(*) as count'))
