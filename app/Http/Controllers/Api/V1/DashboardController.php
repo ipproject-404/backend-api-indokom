@@ -76,6 +76,8 @@ class DashboardController extends Controller
             if (!$osName) $osName = 'Windows OS';
         }
 
+        DB::select('SELECT SLEEP(2)'); // Memaksa database "tidur" selama 2 detik
+
     // 2. Mengukur waktu respon API (Latency)
     $start = microtime(true);
     DB::connection()->getPdo(); // Cek koneksi database
