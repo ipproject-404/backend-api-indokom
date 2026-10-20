@@ -35,13 +35,21 @@ class TrackVisitor
             ]);
         }
 
+                // Catat waktu mulai
+        $startTime = microtime(true);
+
+        // Jalankan request
         $response = $next($request);
+
+        // Hitung durasi dalam milidetik
+        $responseTime = round((microtime(true) - $startTime) * 1000);
 
         // Catat Log API (untuk APM)
         \App\Models\ApiLog::create([
             'endpoint' => $request->path(),
             'status_code' => $response->getStatusCode(),
-            'hashed_ip' => $hashedId
+            'hashed_ip' => $hashedId,
+            'response_time' => $responseTime,
         ]);
 
         return $response;
