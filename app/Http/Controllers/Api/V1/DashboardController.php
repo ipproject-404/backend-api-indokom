@@ -74,6 +74,18 @@ class DashboardController extends Controller
             if (!$osName) $osName = 'Windows OS';
         }
 
+                $cpuTemp = null;
+
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $tempCommand = 'powershell -Command "(Get-CimInstance -Namespace root/wmi -ClassName MSAcpi_ThermalZoneTemperature | Select-Object -First 1).CurrentTemperature"';
+            $rawTemp = trim(shell_exec($tempCommand));
+            
+            if (is_numeric($rawTemp) && $rawTemp > 0) {
+                $cpuTemp = round(($rawTemp / 10) - 273.15, 1); // Konversi ke Celsius
+            }
+        }
+
+
         // ==========================================
         // 1. FORMAT UPTIME (Hari, Jam, Menit, Detik)
         // ==========================================
@@ -114,6 +126,7 @@ class DashboardController extends Controller
                 'cpu_cores' => $snapshot->cores,
                 'cpu_name' => $cpuName,
                 'os_name' => $osName,
+                'cpu_temp' => $cpuTemp,
                 'ram_used' => round($snapshot->memoryUsed / 1024 / 1024 / 1024, 2),
                 'ram_total' => round($snapshot->memoryTotal / 1024 / 1024 / 1024, 2),
                 'ram_percent' => round(($snapshot->memoryUsed / $snapshot->memoryTotal) * 100, 2),
